@@ -18,30 +18,24 @@ namespace ExcelToText
         {
             try
             {
-
-           
-            FolderBrowserDialog theDialog = new FolderBrowserDialog();
-            if (theDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                string folder = theDialog.SelectedPath;  //selected folder path
-
-
-                //theDialog.Title = "Open Excel File";
-                foreach (string file in Directory.EnumerateFiles(folder, "*.xlsx"))
+                FolderBrowserDialog theDialog = new FolderBrowserDialog();
+                if (theDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    
+                    string folder = theDialog.SelectedPath;  //selected folder path
+
+                    //theDialog.Title = "Open Excel File";
+                    foreach (string file in Directory.EnumerateFiles(folder, "*.xlsx"))
+                    {
                         label1.Visible = true;
                         label1.Text = "Loading";
                         button1.Enabled = false;
                         Thread th = new Thread(() => ExcelToText(file));
                         th.IsBackground = true;
                         th.Start();
-                      
-                    
+                    }
                 }
             }
-            }
-            catch (Exception x )
+            catch (Exception x)
             {
                 MessageBox.Show(x.ToString());
                 throw;
@@ -52,16 +46,18 @@ namespace ExcelToText
         {
             try
             {
+                int FileNo = 0;
                 string seprator = txtSperator.Text;
-                using (StreamWriter sw = new StreamWriter(Path.Combine(Path.GetDirectoryName(excelFilePath), $"{Path.GetFileNameWithoutExtension(excelFilePath)}.txt")))
+                using (var stream = File.Open(excelFilePath, FileMode.Open, FileAccess.Read))
                 {
-                    using (var stream = File.Open(excelFilePath, FileMode.Open, FileAccess.Read))
+                    using (var reader = ExcelReaderFactory.CreateReader(stream))
                     {
-                        using (var reader = ExcelReaderFactory.CreateReader(stream))
+                        // 1. Use the reader methods
+                        do
                         {
-                            // 1. Use the reader methods
-                            do
+                            using (StreamWriter sw = new StreamWriter(Path.Combine(Path.GetDirectoryName(excelFilePath), $"{Path.GetFileNameWithoutExtension(excelFilePath) + FileNo.ToString()}.txt")))
                             {
+                                sw.WriteLine(reader.Name.ToString().Replace("\n", " ").Replace("\r", " "));
                                 while (reader.Read())
                                 {
                                     for (int i = 0; i < reader.FieldCount; i++)
@@ -76,13 +72,12 @@ namespace ExcelToText
                                     sw.WriteLine("");
 
                                     sw.Flush();
-                                }
-                            } while (reader.NextResult());
-
-                            button1.Enabled = true;
-                            label1.Text = "Done";
-                            GC.Collect();
-                        }
+                                }FileNo++;
+                            }
+                        } while (reader.NextResult());
+                        button1.Enabled = true;
+                        label1.Text = "Done";
+                        GC.Collect();
                     }
                 }
             }
@@ -99,16 +94,12 @@ namespace ExcelToText
             string folder = txtPath.Text;
             foreach (string file in Directory.EnumerateFiles(folder, "*.xlsx"))
             {
-                
-
                 label1.Visible = true;
                 label1.Text = "Loading";
                 button1.Enabled = false;
                 Thread th = new Thread(() => ExcelToText(file));
                 th.IsBackground = true;
                 th.Start();
-                
-
             }
         }
     }
